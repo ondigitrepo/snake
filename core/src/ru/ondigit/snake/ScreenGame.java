@@ -14,7 +14,7 @@ public class ScreenGame extends ScreenAdapter {
 
     private SpriteBatch batch;
     private Texture snakeHead;
-    private static final float MOVE_TIME = 0.5F;
+    private static final float MOVE_TIME = 0.25F;
     private float timer = MOVE_TIME;
     private static final int SNAKE_MOVEMENT = 32;
     public int snakeX = 0, snakeY = 0;
@@ -33,6 +33,7 @@ public class ScreenGame extends ScreenAdapter {
     private int appleX, appleY;
     private Array<BodyPart> bodyParts;
     private int snakeXbeforeUpdate = 0, snakeYbeforeUpdate = 0;
+    private boolean directionSet;
 
     @Override
     public void show() {
@@ -104,10 +105,10 @@ public class ScreenGame extends ScreenAdapter {
         uPressed = Gdx.input.isKeyPressed(Input.Keys.UP);
         dPressed = Gdx.input.isKeyPressed(Input.Keys.DOWN);
 
-        if (lPressed) direction = LEFT;
-        if (rPressed) direction = RIGHT;
-        if (uPressed) direction = UP;
-        if (dPressed) direction = DOWN;
+        if (lPressed) updateDirection(LEFT);
+        if (rPressed) updateDirection(RIGHT);
+        if (uPressed) updateDirection(UP);
+        if (dPressed) updateDirection(DOWN);
     }
 
     private void checkAndPlaceApple() {
@@ -153,6 +154,35 @@ public class ScreenGame extends ScreenAdapter {
             BodyPart bodyPart = bodyParts.removeIndex(0);
             bodyPart.updateBodyPosition(snakeXbeforeUpdate,snakeYbeforeUpdate);
             bodyParts.add(bodyPart);
+        }
+    }
+
+    private void updateIfNotOppositeDirection(int newSnakeDirection, int oppositeDirection) {
+        if (newSnakeDirection != oppositeDirection || bodyParts.size == 0) {
+            direction = newSnakeDirection;
+        }
+    }
+
+    private void updateDirection(int newSnakeDirection) {
+        if (!directionSet && direction != newSnakeDirection) {
+            switch (direction) {
+                case LEFT: {
+                    updateIfNotOppositeDirection(newSnakeDirection, RIGHT);
+                    break;
+                }
+                case RIGHT: {
+                    updateIfNotOppositeDirection(newSnakeDirection, LEFT);
+                    break;
+                }
+                case UP: {
+                    updateIfNotOppositeDirection(newSnakeDirection, DOWN);
+                    break;
+                }
+                case DOWN: {
+                    updateIfNotOppositeDirection(newSnakeDirection, UP);
+                    break;
+                }
+            }
         }
     }
 
