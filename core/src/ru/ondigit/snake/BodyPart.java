@@ -23,4 +23,12 @@ public class BodyPart {
             batch.draw(texture,x,y);
         }
     }
+
+    public int getX() {
+        return x;
+    }
+
+    public int getY() {
+        return y;
+    }
 }

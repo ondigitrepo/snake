@@ -34,6 +34,7 @@ public class ScreenGame extends ScreenAdapter {
     private Array<BodyPart> bodyParts;
     private int snakeXbeforeUpdate = 0, snakeYbeforeUpdate = 0;
     private boolean directionSet;
+    private boolean hasHit = false;
 
     @Override
     public void show() {
@@ -46,18 +47,25 @@ public class ScreenGame extends ScreenAdapter {
 
     @Override
     public void render(float delta) {
-        queryInput();
-        timer -= delta;
-        if(timer <=0) {
-            timer = MOVE_TIME;
-            moveSnake();
-            checkForOutOfBounds();
-            updateBodyPartsPosition();
+        if (!hasHit) {
+            queryInput();
+            timer -= delta;
+            if(timer <=0) {
+                timer = MOVE_TIME;
+                moveSnake();
+                checkForOutOfBounds();
+                updateBodyPartsPosition();
+                checkSnakeBodyCollision();
+                directionSet = false;
+            }
+            checkAppleCollision();
+            checkAndPlaceApple();
+            clearScreen();
+            draw();
+        } else {
+            System.exit(0
+            );
         }
-        checkAppleCollision();
-        checkAndPlaceApple();
-        clearScreen();
-        draw();
     }
 
     private void checkForOutOfBounds() {
@@ -182,6 +190,14 @@ public class ScreenGame extends ScreenAdapter {
                     updateIfNotOppositeDirection(newSnakeDirection, UP);
                     break;
                 }
+            }
+        }
+    }
+
+    private void checkSnakeBodyCollision() {
+        for (BodyPart bodyPart : bodyParts) {
+            if (bodyPart.getX() == snakeX && bodyPart.getY() == snakeY) {
+                hasHit = true;
             }
         }
     }
