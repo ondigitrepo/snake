@@ -4,11 +4,14 @@ package ru.ondigit.snake;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.ScreenAdapter;
-import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.*;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.viewport.FitViewport;
+import com.badlogic.gdx.utils.viewport.Viewport;
 
 public class ScreenGame extends ScreenAdapter {
 
@@ -34,11 +37,31 @@ public class ScreenGame extends ScreenAdapter {
     private Array<BodyPart> bodyParts;
     private int snakeXbeforeUpdate = 0, snakeYbeforeUpdate = 0;
     private boolean directionSet;
-    private boolean hasHit = false;
+    private enum STATE {
+        PLAYING, GAME_OVER
+    }
+    private STATE state = STATE.PLAYING;
+    private static final String GAME_OVER_TEXT = "Game Over... Tap space to restart!";
+    private GlyphLayout layout;
+    private BitmapFont bitmapFont;
+    private static final float WORLD_WIDTH = 640;
+    private static final float WORLD_HEIGHT = 480;
+    private Viewport viewport;
+    private Camera camera;
+    private int score = 0;
+    private static final int POINTS_PER_APPLE = 20;
+    private GlyphLayout scoreBounds;
 
     @Override
     public void show() {
+        camera = new OrthographicCamera(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        camera.position.set(WORLD_WIDTH /2, WORLD_HEIGHT / 2,0);
+        camera.update();
+        viewport = new FitViewport(WORLD_WIDTH,WORLD_HEIGHT,camera);
+        layout = new GlyphLayout();
+        scoreBounds = new GlyphLayout();
         batch = new SpriteBatch();
+        bitmapFont = new BitmapFont();
         snakeHead = new Texture(Gdx.files.internal("snakehead.png"));
         snakeBody = new Texture(Gdx.files.internal("snakebody.png"));
         bodyParts = new Array<BodyPart>();
@@ -47,8 +70,23 @@ public class ScreenGame extends ScreenAdapter {
 
     @Override
     public void render(float delta) {
-        if (!hasHit) {
-            queryInput();
+        switch (state) {
+            case PLAYING: {
+                queryInput();
+                updateSnake(delta);
+                checkAppleCollision();
+                checkAndPlaceApple();
+                break;
+            }
+            case GAME_OVER: {
+                checkForRestart();
+            }
+        }
+        clearScreen();
+        draw();
+    }
+
+    public void updateSnake(float delta) {
             timer -= delta;
             if(timer <=0) {
                 timer = MOVE_TIME;
@@ -58,14 +96,7 @@ public class ScreenGame extends ScreenAdapter {
                 checkSnakeBodyCollision();
                 directionSet = false;
             }
-            checkAppleCollision();
-            checkAndPlaceApple();
-            clearScreen();
-            draw();
-        } else {
-            System.exit(0
-            );
-        }
+
     }
 
     private void checkForOutOfBounds() {
@@ -137,6 +168,13 @@ public class ScreenGame extends ScreenAdapter {
     private void draw() {
         batch.begin();
 
+        if (state == STATE.GAME_OVER) {
+            layout.setText(bitmapFont,GAME_OVER_TEXT);
+            bitmapFont.setColor(new Color(0f,0f,1f,1f));
+            bitmapFont.draw(batch,GAME_OVER_TEXT, (viewport.getWorldWidth() - layout.width) / 2,
+                    (viewport.getWorldHeight() - layout.height) / 2);
+        }
+        drawScore();
         for (BodyPart bodyPart : bodyParts) {
             bodyPart.draw(batch);
         }
@@ -153,6 +191,7 @@ public class ScreenGame extends ScreenAdapter {
             BodyPart bodyPart = new BodyPart(snakeBody);
             bodyPart.updateBodyPosition(snakeX,snakeY);
             bodyParts.insert(0,bodyPart);
+            addToScore();
             appleAvailable = false;
         }
     }
@@ -197,9 +236,39 @@ public class ScreenGame extends ScreenAdapter {
     private void checkSnakeBodyCollision() {
         for (BodyPart bodyPart : bodyParts) {
             if (bodyPart.getX() == snakeX && bodyPart.getY() == snakeY) {
-                hasHit = true;
+                state = STATE.GAME_OVER;
             }
         }
     }
 
+    private void checkForRestart() {
+        if (Gdx.input.isKeyPressed(Input.Keys.SPACE)) doRestart();
+    }
+
+    private void doRestart() {
+        state = STATE.PLAYING;
+        bodyParts.clear();
+        direction = RIGHT;
+        directionSet = false;
+        timer = MOVE_TIME;
+        score = 0;
+        snakeX = 0;
+        snakeY = 0;
+        snakeXbeforeUpdate = 0;
+        snakeYbeforeUpdate = 0;
+        appleAvailable = false;
+    }
+
+    private void addToScore() {
+        score += POINTS_PER_APPLE;
+    }
+
+    private void drawScore() {
+        if (state == STATE.PLAYING) {
+            String scoreAsString = Integer.toString(score);
+            scoreBounds.setText(bitmapFont, scoreAsString);
+            bitmapFont.draw(batch, scoreAsString, (Gdx.graphics.getWidth() - scoreBounds.width) / 2,
+                    (4 * Gdx.graphics.getHeight() /5) - scoreBounds.height /2);
+        }
+    }
 }
